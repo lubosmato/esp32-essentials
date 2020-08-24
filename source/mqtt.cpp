@@ -54,7 +54,6 @@ struct Mqtt::Private {
     subscriber->second->topic = subscriber->first;
     subscriber->second->_reaction = std::move(reaction);
     subscriber->second->_unsubscribe = [prefixedTopic, this, subscriber]() {
-      printf("deleting subscriber\n");
       subscribers.erase(subscriber);
       esp_mqtt_client_unsubscribe(client, prefixedTopic.c_str());
     };
