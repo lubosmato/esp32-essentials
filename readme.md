@@ -142,6 +142,8 @@ es::Wifi wifi{ssid, wifiPass}; // blocking call, waiting for connection
 
 namespace es = essentials;
 
+// don't forget to link root certificate in root CMakeLists.txt:
+// target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "main/cert.pem" TEXT)
 extern const uint8_t mqttCertBegin[] asm("_binary_cert_pem_start");
 extern const uint8_t mqttCertEnd[] asm("_binary_cert_pem_end");
 
@@ -260,3 +262,7 @@ factory,  app,  factory, 0x10000, 2M, # <--
 Library uses exceptions and C++17 features thus you might need to enable them.
 
 Good app for testing MQTT: http://mqtt-explorer.com/
+
+Root certificate can be obtained with: 
+`echo "" | openssl s_client -showcerts -connect my.mqtt.com:8883 | sed -n "1,/Root/d; /BEGIN/,/END/p" | openssl x509 -outform PEM > cert.pem`
+Replace `my.mqtt.com:8883` with your MQTT broker's address.
