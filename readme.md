@@ -109,7 +109,9 @@ integerConfig = integer; // save to storage
 ## WiFi
 WiFi is managed by RAII class which tries to connect to the WiFi based on given credentials. 
 
-If connection is not possible, it automatically switches to `AP` mode and runs web server with settings web interface. New settings are stored into the storage with use of `essentials::Config` values. Settings can be adjusted on `http://192.168.4.1/`: ![Web Settings](settings.png)
+If connection is not possible, it automatically switches to `AP` mode and runs web server with settings web interface. New settings are stored into the storage with use of `essentials::Config` values. Settings can be adjusted on `http://192.168.4.1/`: 
+
+![Web Settings](settings.png)
 
 Example:
 ```cpp
