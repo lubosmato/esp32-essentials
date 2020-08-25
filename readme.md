@@ -96,9 +96,9 @@ es::Config config{configStorage};
 auto ssidConfig = config.get<std::string>("ssid");
 auto integerConfig = config.get<int>("integer");
 
-printf("Old SSID is %s\n", *ssidConfig); // load from storage
+printf("Old SSID is %s\n", ssidConfig->c_str()); // load from storage
 ssidConfig = "New SSID"; // saves into storage
-printf("New SSID is %s\n", *ssidConfig); // load from storage again
+printf("New SSID is %s\n", ssidConfig->c_str()); // load from storage again
 
 printf("Integer is %d\n", *integerConfig); // load from storage
 int integer = integerConfig; // load from storage
