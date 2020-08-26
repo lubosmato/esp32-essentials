@@ -3,42 +3,42 @@ C++17 ESP-IDF component with boilerplate for WiFi, MQTT, configuration, persiten
 
 # How to use
 1. Add this repo as a submodule into `components` folder:
-```bash
-cd my-esp-idf-project/
-git submodule add https://github.com/lubosmato/esp32-essentials.git components/essentials/
-```
-```
-my-esp-idf-project/
-├── components/
-│   ├── essentials/ <--
-│   └── ...another components...
-├── main/
-│   ├── CMakeLists.txt
-│   └── main.cpp
-├── CMakeLists.txt
-├── sdkconfig
-└── partitions.csv
-```
+    ```bash
+    cd my-esp-idf-project/
+    git submodule add https://github.com/lubosmato/esp32-essentials.git components/essentials/
+    ```
+    ```
+    my-esp-idf-project/
+    ├── components/
+    │   ├── essentials/ <--
+    │   └── ...another components...
+    ├── main/
+    │   ├── CMakeLists.txt
+    │   └── main.cpp
+    ├── CMakeLists.txt
+    ├── sdkconfig
+    └── partitions.csv
+    ```
 2. Add binary data of web settings app and C++20 support into root `CMakeLists.txt`:
-```cmake
-cmake_minimum_required(VERSION 3.5)
+    ```cmake
+    cmake_minimum_required(VERSION 3.5)
 
-set(CMAKE_CXX_STANDARD 20) # <--
+    set(CMAKE_CXX_STANDARD 20) # <--
 
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(my-esp-idf-project)
+    include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+    project(my-esp-idf-project)
 
-target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/app.js.gz" TEXT) # <--
-target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/index.html.gz" TEXT) # <--
-```
+    target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/app.js.gz" TEXT) # <--
+    target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/index.html.gz" TEXT) # <--
+    ```
 3. Enable exceptions in `idf.py menuconfig`
 4. Add `REQUIRES` into your main `CMakeLists.txt`:
-```
-idf_component_register(
-    SRCS "main.cpp"
-    REQUIRES essentials
-)
-```
+    ```
+    idf_component_register(
+        SRCS "main.cpp"
+        REQUIRES essentials
+    )
+    ```
 5. (optional) Configure AP WiFi settings (ssid, password, channel) with `idf.py menuconfig`
 6. Build
 
