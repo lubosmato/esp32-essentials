@@ -343,8 +343,6 @@ struct Wifi::Private {
   }
 
   ~Private() {
-    httpd_stop(server);
-
     esp_event_handler_unregister(
       WIFI_EVENT, 
       ESP_EVENT_ANY_ID, 
@@ -360,6 +358,11 @@ struct Wifi::Private {
       ESP_EVENT_ANY_ID, 
       &Private::apEventHandler
     );
+    
+    httpd_stop(server);
+    esp_wifi_disconnect();
+    esp_wifi_stop();
+    esp_wifi_deinit();
   }
 };
 
