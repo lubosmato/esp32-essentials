@@ -19,27 +19,28 @@ my-esp-idf-project/
 ├── sdkconfig
 └── partitions.csv
 ```
-2. Add binary data of web settings app into root `CMakeLists.txt`:
+2. Add binary data of web settings app and C++20 support into root `CMakeLists.txt`:
 ```cmake
 cmake_minimum_required(VERSION 3.5)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 20) # <--
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(my-esp-idf-project)
 
-target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/app.js.gz" TEXT)
-target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/index.html.gz" TEXT)
+target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/app.js.gz" TEXT) # <--
+target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/index.html.gz" TEXT) # <--
 ```
-3. Add `REQUIRES` into your main `CMakeLists.txt`:
+3. Enable exceptions in `idf.py menuconfig`
+4. Add `REQUIRES` into your main `CMakeLists.txt`:
 ```
 idf_component_register(
     SRCS "main.cpp"
     REQUIRES essentials
 )
 ```
-4. (optional) Configure AP WiFi settings (ssid, password, channel) with `idf.py menuconfig`
-5. Build
+5. (optional) Configure AP WiFi settings (ssid, password, channel) with `idf.py menuconfig`
+6. Build
 
 # Examples
 
@@ -78,6 +79,9 @@ if (data.empty()) {
     b = uint8_t(esp_random());
   storage.write("mac", es::Range<uint8_t>{data.data(), data.size()});
 }
+for (uint8_t& b : data)
+  printf("%02x ", b);
+printf("\n");
 ```
 
 ## Config
@@ -96,13 +100,20 @@ es::Config config{configStorage};
 auto ssidConfig = config.get<std::string>("ssid");
 auto integerConfig = config.get<int>("integer");
 
+// operator* loads value from storage and returns it
+if (ssidConfig->empty()) {
+  ssidConfig = "New SSID"; // operator= saves to storage
+}
+
 printf("Old SSID is %s\n", ssidConfig->c_str()); // load from storage
-ssidConfig = "New SSID"; // saves into storage
+ssidConfig = *ssidConfig + "."; // save to storage
 printf("New SSID is %s\n", ssidConfig->c_str()); // load from storage again
 
 printf("Integer is %d\n", *integerConfig); // load from storage
-int integer = integerConfig; // load from storage
-// ... calculate stuff with integer ...
+int integer = integerConfig; // operator T() can also be used for loading from storage
+// calculate stuff with integer
+integer++;
+// end of calculation
 integerConfig = integer; // save to storage
 ```
 
@@ -144,6 +155,7 @@ namespace es = essentials;
 
 // don't forget to link root certificate in root CMakeLists.txt:
 // target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "main/cert.pem" TEXT)
+// see how to generate certificate below in Details section
 extern const uint8_t mqttCertBegin[] asm("_binary_cert_pem_start");
 extern const uint8_t mqttCertEnd[] asm("_binary_cert_pem_end");
 
@@ -250,19 +262,49 @@ void app_main()
 ```
 
 ## Details
-Binary has approximately 1MB thus you might need to adjust main partition size in `partitions.csv`:
-```
-# ESP-IDF Partition Table
-# Name,   Type, SubType, Offset,  Size, Flags
-nvs,      data, nvs,     0x9000,  0x6000,
-phy_init, data, phy,     0xf000,  0x1000,
-factory,  app,  factory, 0x10000, 2M, # <--
-```
+- Good app (can visualize values in charts) for testing MQTT: http://mqtt-explorer.com/
 
-Library uses exceptions and C++17 features thus you might need to enable them.
+- Binary which uses WiFi and MQTT has approximately 1MB thus you might need to adjust main partition size in `partitions.csv`:
+    ```
+    # ESP-IDF Partition Table
+    # Name,   Type, SubType, Offset,  Size, Flags
+    nvs,      data, nvs,     0x9000,  0x6000,
+    phy_init, data, phy,     0xf000,  0x1000,
+    factory,  app,  factory, 0x10000, 2M, # <--
+    ```
 
-Good app for testing MQTT: http://mqtt-explorer.com/
+- Library uses exceptions and C++20 features thus you must enable them
 
-Root certificate can be obtained with: 
-`echo "" | openssl s_client -showcerts -connect my.mqtt.com:8883 | sed -n "1,/Root/d; /BEGIN/,/END/p" | openssl x509 -outform PEM > cert.pem`
-Replace `my.mqtt.com:8883` with your MQTT broker's address.
+- Root certificate can be obtained with: 
+    ```bash
+    echo "" | openssl s_client -showcerts -connect my.mqtt.com:8883 | sed -n "1,/Root/d; /BEGIN/,/END/p" | openssl x509 -outform PEM > cert.pem
+    ```
+    Replace `my.mqtt.com:8883` with MQTT broker's address.
+    
+    To use certificate edit your root `CMakeLists.txt`:
+    ```cmake
+    cmake_minimum_required(VERSION 3.5)
+
+    set(CMAKE_CXX_STANDARD 20)
+
+    include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+    project(my-esp-idf-project)
+
+    target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/app.js.gz" TEXT)
+    target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/index.html.gz" TEXT)
+    
+    target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "main/cert.pem" TEXT) # <--
+    ```
+    And use linked cert data in code:
+    ```cpp
+    extern const uint8_t mqttCertBegin[] asm("_binary_cert_pem_start");
+    extern const uint8_t mqttCertEnd[] asm("_binary_cert_pem_end");
+    ```
+
+# TODO
+- [ ] MQTT subscription to multi and single level (heavy feature, maybe YAGNI)
+- [ ] Check all error codes and throw
+- [ ] Make settings web server simpler without enormous number of route handlers
+- [ ] Make settings web app smaller (overkilled by Vue.js)
+- [ ] Add tests
+- [ ] Use `std::to_chars` and `std::from_chars` for floating point types when will be implemented in GCC
