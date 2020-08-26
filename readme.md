@@ -31,15 +31,16 @@ project(my-esp-idf-project)
 target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/app.js.gz" TEXT) # <--
 target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/index.html.gz" TEXT) # <--
 ```
-3. Add `REQUIRES` into your main `CMakeLists.txt`:
+3. Enable exceptions in `idf.py menuconfig`
+4. Add `REQUIRES` into your main `CMakeLists.txt`:
 ```
 idf_component_register(
     SRCS "main.cpp"
     REQUIRES essentials
 )
 ```
-4. (optional) Configure AP WiFi settings (ssid, password, channel) with `idf.py menuconfig`
-5. Build
+5. (optional) Configure AP WiFi settings (ssid, password, channel) with `idf.py menuconfig`
+6. Build
 
 # Examples
 
