@@ -19,17 +19,17 @@ my-esp-idf-project/
 ├── sdkconfig
 └── partitions.csv
 ```
-2. Add binary data of web settings app into root `CMakeLists.txt`:
+2. Add binary data of web settings app and C++20 support into root `CMakeLists.txt`:
 ```cmake
 cmake_minimum_required(VERSION 3.5)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 20) # <--
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(my-esp-idf-project)
 
-target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/app.js.gz" TEXT)
-target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/index.html.gz" TEXT)
+target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/app.js.gz" TEXT) # <--
+target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/index.html.gz" TEXT) # <--
 ```
 3. Add `REQUIRES` into your main `CMakeLists.txt`:
 ```
