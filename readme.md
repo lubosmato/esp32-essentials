@@ -137,7 +137,14 @@ es::Config config{configStorage};
 
 auto ssid = config.get<std::string>("ssid");
 auto wifiPass = config.get<std::string>("wifiPass");
-es::Wifi wifi{ssid, wifiPass}; // blocking call, waiting for connection
+es::Mqtt mqtt{mqttInfo, mqttPrefix, "My ESP32 Project", "1.0.0"}; // blocking call, waiting for connection
+
+if (!wifi.isConnected()) {
+  while (true) {
+    printf("Not connected to the wifi. Settings web server has started...\n");
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+  }
+}
 ```
 
 ## MQTT
@@ -179,7 +186,7 @@ void exampleApp() {
     "username",
     "password"
   };
-  es::Mqtt mqtt{mqttInfo, mqttPrefix};
+  es::Mqtt mqtt{mqttInfo, mqttPrefix, "My ESP32 Project", "1.0.0"};
 
   // task which publishes device info every second
   xTaskCreate(
@@ -300,11 +307,12 @@ void app_main()
     extern const uint8_t mqttCertBegin[] asm("_binary_cert_pem_start");
     extern const uint8_t mqttCertEnd[] asm("_binary_cert_pem_end");
     ```
+- HTTP settings server might return `431 Request Header Fields Too Large` code on some browsers. Error response: `Header fields are too long for server to interpret`. It is recommended to change `HTTPD_MAX_REQ_HDR_LEN` to at least 1024 in `idf.py menuconfig`.
 
 # TODO
 - [ ] MQTT subscription to multi and single level (heavy feature, maybe YAGNI)
 - [ ] Check all error codes and throw
-- [ ] Make settings web server simpler without enormous number of route handlers
-- [ ] Make settings web app smaller (overkilled by Vue.js)
+- [x] Make settings web server simpler without enormous number of route handlers
+- [x] Make settings web app smaller (overkilled by Vue.js)
 - [ ] Add tests
 - [ ] Use `std::to_chars` and `std::from_chars` for floating point types when will be implemented in GCC

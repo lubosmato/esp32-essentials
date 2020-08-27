@@ -13,4 +13,5 @@ menu "MQTT Configuration"
   config WIFI_AP_DEFAULT_CHANNEL
     int "Emergency wifi AP channel"
     default 6
+
 endmenu

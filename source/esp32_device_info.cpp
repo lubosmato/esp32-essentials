@@ -27,8 +27,9 @@ std::string Esp32DeviceInfo::uniqueId() const {
   esp_efuse_mac_get_default(mac.data());
   
   std::string id;
-  id.resize(macSize * 2);
-  sprintf(id.data(), "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  // NOTE skip vendor part of mac address
+  id.resize(macSize);
+  sprintf(id.data(), "%02x%02x%02x", mac[3], mac[4], mac[5]);
   
   return id;
 }

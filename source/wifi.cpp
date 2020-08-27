@@ -1,10 +1,10 @@
 #include "essentials/wifi.hpp"
-#include "essentials/version.hpp"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 
+#include "cJSON.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
@@ -33,6 +33,8 @@ extern const uint8_t appJsEnd[] asm("_binary_app_js_gz_end");
 struct Wifi::Private {
   Config::Value<std::string>& ssid;
   Config::Value<std::string>& password;
+  std::string deviceName;
+  std::string version;
 
   EventGroupHandle_t wifiEvents = xEventGroupCreate();
   int retryAttempts = 0;
@@ -42,30 +44,18 @@ struct Wifi::Private {
   static constexpr int WIFI_CONNECTED_BIT = BIT0;
   static constexpr int WIFI_FAIL_BIT = BIT1;
 
-  std::array<httpd_uri_t, 8> handlerDefinitions{
+  std::array<httpd_uri_t, 4> handlerDefinitions{
     httpd_uri_t{
       "/", HTTP_GET, &Private::getIndex, this
-    },
-    httpd_uri_t{
-      "/reset", HTTP_GET, &Private::getReset, this
     },
     httpd_uri_t{
       "/app.js", HTTP_GET, &Private::getAppJs, this
     },
     httpd_uri_t{
-      "/config/ssid", HTTP_GET, &Private::getSsid, this
+      "/settings", HTTP_GET, &Private::getSettings, this
     },
     httpd_uri_t{
-      "/config/ssid", HTTP_POST, &Private::setSsid, this
-    },
-    httpd_uri_t{
-      "/config/pass", HTTP_GET, &Private::getPassword, this
-    },
-    httpd_uri_t{
-      "/config/pass", HTTP_POST, &Private::setPassword, this
-    },
-    httpd_uri_t{
-      "/config/version", HTTP_GET, &Private::getVersion, this
+      "/settings", HTTP_POST, &Private::setSettings, this
     }
   };
 
@@ -89,80 +79,77 @@ struct Wifi::Private {
     return body;
   }
 
-  static esp_err_t getReset(httpd_req_t* req) {
-    httpd_resp_set_status(req, "302 Found");
-    httpd_resp_set_hdr(req, "Location", "/");
-    httpd_resp_send(req, nullptr, 0);
-    xTaskCreate(&Private::restartTask, "restartTask", 2048, nullptr, tskIDLE_PRIORITY, nullptr);
+  static esp_err_t getSettings(httpd_req_t* req) {
+    Private* p = static_cast<Private*>(req->user_ctx);
+    std::string settingsJson = p->makeSettingsJson();
+    httpd_resp_send(req, settingsJson.data(), settingsJson.size());
     return ESP_OK;
   }
 
-  static void restartTask(void* params) {
-    vTaskDelay(pdMS_TO_TICKS(2000));
-    esp_restart();
+  std::string makeSettingsJson() {
+    cJSON* json = cJSON_CreateObject();
+    cJSON_AddStringToObject(json, "ssid", ssid->c_str());
+    cJSON_AddStringToObject(json, "pass", password->c_str());
+    cJSON_AddStringToObject(json, "deviceName", deviceName.c_str());
+    cJSON_AddStringToObject(json, "version", version.c_str());
+
+    std::unique_ptr<char[]> rawData{cJSON_Print(json)};
+    cJSON_free(json);
+    return std::string{rawData.get()};
+  }
+
+  static esp_err_t setSettings(httpd_req_t* req) {
+    Private* p = static_cast<Private*>(req->user_ctx);
+    std::optional<std::string> postData = readBody(req);
+    if (postData) { 
+      p->setSettingsFromJson(std::move(*postData));
+    }
+    httpd_resp_set_status(req, "302 Found");
+    httpd_resp_set_hdr(req, "Location", "/");
+    httpd_resp_send(req, nullptr, 0);
+
+    xTaskCreate(
+      [](void*) {
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        esp_restart();
+      }, 
+      "restartTask", 
+      1024, 
+      nullptr, 
+      tskIDLE_PRIORITY, 
+      nullptr
+    );
+
+    return ESP_OK;
+  }
+  
+  void setSettingsFromJson(std::string jsonContent) {
+    cJSON* json = cJSON_Parse(jsonContent.c_str());
+    ssid = cJSON_GetObjectItem(json, "ssid")->valuestring;
+    password = cJSON_GetObjectItem(json, "pass")->valuestring;
+    cJSON_free(json);
   }
 
   static esp_err_t getIndex(httpd_req_t* req) {
     httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+    httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=2419200");
     httpd_resp_send(req, reinterpret_cast<const char*>(indexHtmlBegin), indexHtmlEnd - indexHtmlBegin);
     return ESP_OK;
   }
 
   static esp_err_t getAppJs(httpd_req_t* req) {
     httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+    httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=2419200");
     httpd_resp_send(req, reinterpret_cast<const char*>(appJsBegin), appJsEnd - appJsBegin);
     return ESP_OK;
   }
 
-  static esp_err_t getSsid(httpd_req_t* req) {
-    Private* p = static_cast<Private*>(req->user_ctx);
-    std::string ssid = p->ssid;
-    httpd_resp_send(req, ssid.c_str(), ssid.size());
-    return ESP_OK;
-  }
-
-  // TODO refactor these little functions into one single form handler
-  static esp_err_t setSsid(httpd_req_t* req) {
-    Private* p = static_cast<Private*>(req->user_ctx);
-    std::optional<std::string> newSsid = readBody(req);
-    if (!newSsid) {
-      httpd_resp_send_404(req);
-      return ESP_OK;
-    }
-    
-    p->ssid = *newSsid;
-    httpd_resp_send(req, newSsid->c_str(), newSsid->size());
-    return ESP_OK;
-  }
-
-  static esp_err_t getPassword(httpd_req_t* req) {
-    Private* p = static_cast<Private*>(req->user_ctx);
-    std::string password = p->password;
-    httpd_resp_send(req, password.c_str(), password.size());
-    return ESP_OK;
-  }
-  
-  static esp_err_t setPassword(httpd_req_t* req) {
-    Private* p = static_cast<Private*>(req->user_ctx);
-    std::optional<std::string> newPassword = readBody(req);
-    if (!newPassword) {
-      httpd_resp_send_404(req);
-      return ESP_OK;
-    }
-    
-    p->password = *newPassword;
-    httpd_resp_send(req, newPassword->c_str(), newPassword->size());
-    return ESP_OK;
-  }
-
-  static esp_err_t getVersion(httpd_req_t* req) {
-    std::string versionString = std::string(version);
-    httpd_resp_send(req, versionString.c_str(), versionString.size());
-    return ESP_OK;
-  }
-
-  Private(Config::Value<std::string>& ssid, Config::Value<std::string>& password) 
-    : ssid(ssid), password(password) {
+  Private(
+    Config::Value<std::string>& ssid, 
+    Config::Value<std::string>& password, 
+    std::string_view deviceName, 
+    std::string_view version
+  ) : ssid(ssid), password(password), deviceName(deviceName), version(version) {
     initializeWifi();
   }
 
@@ -216,7 +203,7 @@ struct Wifi::Private {
       WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
       pdFALSE,
       pdFALSE,
-      pdMS_TO_TICKS(15000)
+      pdMS_TO_TICKS(CONNECTION_TIMEOUT)
     );
 
     if (bits & WIFI_CONNECTED_BIT) {
@@ -257,7 +244,7 @@ struct Wifi::Private {
       esp_wifi_connect();
     } else if (eventBase == WIFI_EVENT && eventId == WIFI_EVENT_STA_DISCONNECTED) {
       esp_wifi_connect();
-      ESP_LOGI(TAG_WIFI, "retry to connect to the AP");
+      ESP_LOGI(TAG_WIFI, "re-trying to connect to the AP");
     } else if (eventBase == IP_EVENT && eventId == IP_EVENT_STA_GOT_IP) {
       ip_event_got_ip_t* event = (ip_event_got_ip_t*)eventData;
       ESP_LOGI(TAG_WIFI, "got ip: %s", ip4addr_ntoa(&event->ip_info.ip));
@@ -309,8 +296,6 @@ struct Wifi::Private {
     error |= esp_wifi_set_config(ESP_IF_WIFI_AP, &wifiConfig);
     error |= esp_wifi_start();
     ESP_ERROR_CHECK(error);
-    
-    isConnected = true;
   }
 
   static void apEventHandler(
@@ -366,9 +351,17 @@ struct Wifi::Private {
   }
 };
 
-Wifi::Wifi(Config::Value<std::string>& ssid, Config::Value<std::string>& password) 
-  : p(std::make_unique<Private>(ssid, password)) { }
+Wifi::Wifi(
+  Config::Value<std::string>& ssid, 
+  Config::Value<std::string>& password, 
+  std::string_view deviceName, 
+  std::string_view version
+) : p(std::make_unique<Private>(ssid, password, deviceName, version)) { }
 
 Wifi::~Wifi() = default;
+
+bool Wifi::isConnected() const {
+  return p->isConnected;
+}
 
 }

@@ -1,0 +1,37 @@
+@import "milligram/src/_Color.sass";
+@import "milligram/src/_Base.sass";
+@import "milligram/src/_Grid.sass";
+@import "milligram/src/_Form.sass";
+@import "milligram/src/_Button.sass";
+@import "milligram/src/_Divider.sass";
+@import "milligram/src/_Typography.sass";
+
+body {
+  margin-top: 2em;
+}
+
+input {
+  margin-bottom: 0;
+}
+
+hr {
+  margin: 1em 0;
+}
+
+@media (min-width: 40.0rem) {
+  .container {
+    width: 50vw;
+  }
+}
+
+@media (min-width: 80.0rem) {
+  .container {
+    width: 40vw;
+  }
+}
+
+@media (min-width: 120.0rem) {
+  .container {
+    width: 30vw;
+  }
+}
