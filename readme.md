@@ -137,7 +137,8 @@ es::Config config{configStorage};
 
 auto ssid = config.get<std::string>("ssid");
 auto wifiPass = config.get<std::string>("wifiPass");
-es::Mqtt mqtt{mqttInfo, mqttPrefix, "My ESP32 Project", "1.0.0"}; // blocking call, waiting for connection
+
+es::Wifi wifi{ssid, wifiPass, "My ESP32 Project", "1.0.0"}; // blocking call, waiting for connection
 
 if (!wifi.isConnected()) {
   while (true) {
