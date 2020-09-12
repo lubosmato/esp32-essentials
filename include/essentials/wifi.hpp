@@ -1,26 +1,34 @@
 #pragma once
 
-#include "sdkconfig.h"
-#include "essentials/config.hpp"
 #include <memory>
+#include <string_view>
+#include <string>
+#include <optional>
 
 namespace essentials {
 
+struct Ipv4Address {
+  uint32_t raw;
+  std::string toString() const;
+};
+
 struct Wifi {
-  static constexpr int CONNECTION_TIMEOUT = 15000; // [ms]
-
-  static constexpr std::string_view DEFAULT_AP_SSID = CONFIG_WIFI_AP_SSID;
-  static constexpr std::string_view DEFAULT_AP_PASS = CONFIG_WIFI_AP_PASS;
-  static constexpr int DEFAULT_AP_CHANNEL = CONFIG_WIFI_AP_DEFAULT_CHANNEL;
-
-  Wifi(
-    Config::Value<std::string>& ssid,
-    Config::Value<std::string>& password,
-    std::string_view deviceName = "ESP32",
-    std::string_view version = "1.0.0"
-  );
+  enum class Channel : uint8_t {
+    Channel1 = 1,
+    Channel2,
+    Channel3,
+    Channel4,
+    Channel5,
+    Channel6,
+    Channel7
+  };
+  Wifi();
   ~Wifi();
+  bool connect(std::string_view ssid, std::string_view password, int connectionTimeout = 15000);
+  void disconnect();
   bool isConnected() const;
+  std::optional<Ipv4Address> ipv4() const;
+  void startAccessPoint(std::string_view ssid, std::string_view password, Channel channel);
 private:
   struct Private;
   std::unique_ptr<Private> p;

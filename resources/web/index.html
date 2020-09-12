@@ -14,36 +14,10 @@
             <h1><span class="device-name"></span></h1>
             <h2>v<span class="version"></span></h2>
             <p class="lead">
-              <span class="device-name"></span> is offline. In order to continue, please configure
-              WiFi network.
+              <span class="device-name"></span> is offline. In order to continue, please configure the device.
             </p>
-            <div>
-              <label for="ssid">SSID</label>
-              <input
-                name="ssid"
-                id="ssid"
-                class="ssid"
-                type="text"
-                placeholder="SSID"
-                required
-              />
-              <small>WiFi network name</small>
-              <hr />
-            </div>
-            
-            <div>
-              <label for="pass">Password</label>
-              <input
-                name="pass"
-                id="pass"
-                class="pass"
-                type="text"
-                placeholder="Password"
-                required
-              />
-              <small>WiFi network password</small>
-              <hr />
-            </div>
+
+            <div class="fields"></div>
 
             <button type="submit" class="button">
               Save & Reset
@@ -52,6 +26,12 @@
         </div>
       </div>
     </div>
+  </div>
+  
+  <div class="field-template">
+    <label></label>
+    <input type="text" />
+    <hr />
   </div>
 </body>
 </html>

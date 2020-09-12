@@ -1,1 +1,1 @@
-{"deviceName": "My ESP32 Project", "version": "1.0.0", "ssid": "my wifi", "pass": "my wifi password"}
+{"deviceName": "My ESP32 Project", "version": "1.0.0", "WiFi SSID": "my wifi", "WiFi Password": "my wifi password", "Some other field": "Hi there"}
