@@ -28,8 +28,8 @@ C++17 ESP-IDF component with boilerplate for WiFi, MQTT, configuration, persiten
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
     project(my-esp-idf-project)
 
-    target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/app.js.gz" TEXT) # <--
-    target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/index.html.gz" TEXT) # <--
+    target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/app.js.gz" TEXT) # <-- (only needed by `essentials::SettingsServer`)
+    target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "components/essentials/resources/web/dist/index.html.gz" TEXT) # <-- (only needed by `essentials::SettingsServer`)
     ```
 3. Enable exceptions in `idf.py menuconfig`
 4. Add `REQUIRES` into your main `CMakeLists.txt`:
