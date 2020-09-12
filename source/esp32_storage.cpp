@@ -36,8 +36,8 @@ std::vector<uint8_t> Esp32Storage::read(std::string_view key, int size) const {
   return buffer;
 }
 
-void Esp32Storage::write(std::string_view key, Range<uint8_t> range) {
-  esp_err_t error = nvs_set_blob(_nvsHandle, std::string(key).c_str(), range.data, range.size);
+void Esp32Storage::write(std::string_view key, Span<uint8_t> data) {
+  esp_err_t error = nvs_set_blob(_nvsHandle, std::string(key).c_str(), data.data, data.size);
   if(error != ESP_OK) {
     throw std::runtime_error("error while writing to NVS");
   }

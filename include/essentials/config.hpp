@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include "essentials/helpers.hpp"
 #include "essentials/persistent_storage.hpp"
 
 namespace essentials {
@@ -61,11 +60,6 @@ public:
     }
 
   public:
-    operator T() {
-      _load();
-      return _value;
-    }
-
     T operator*() {
       _load();
       return _value;

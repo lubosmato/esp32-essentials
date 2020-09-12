@@ -12,7 +12,7 @@ struct Esp32Storage : PersistentStorage {
 
   int size(std::string_view key) const override;
   std::vector<uint8_t> read(std::string_view key, int size) const override;
-  void write(std::string_view key, Range<uint8_t> range) override;
+  void write(std::string_view key, Span<uint8_t> data) override;
   void clear() override;
 private:
   void initialize();
