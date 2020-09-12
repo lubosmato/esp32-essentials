@@ -162,11 +162,11 @@ struct SettingsServer::Private {
 
 };
 
-SettingsServer::SettingsServer(uint16_t port, std::string deviceName, std::string version, std::vector<Field> fields) 
+SettingsServer::SettingsServer(uint16_t port, std::string_view deviceName, std::string_view version, std::vector<Field> fields) 
   : p(std::make_unique<Private>()) {
   p->port = port;
-  p->deviceName = std::move(deviceName);
-  p->version = std::move(version);
+  p->deviceName = deviceName;
+  p->version = version;
   p->fields = std::move(fields);
 }
 

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <string_view>
+#include <string>
 #include "essentials/config.hpp"
 
 namespace essentials {
@@ -11,7 +13,7 @@ struct SettingsServer {
     Config::Value<std::string>& value;
   };
 
-  SettingsServer(uint16_t port, std::string deviceName, std::string version, std::vector<Field> fields);
+  SettingsServer(uint16_t port, std::string_view deviceName, std::string_view version, std::vector<Field> fields);
   ~SettingsServer();
 
   void start();
