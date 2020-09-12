@@ -5,6 +5,7 @@
 
 #include "esp_wifi.h"
 #include "esp_log.h"
+#include "esp_netif.h"
 #include "nvs_flash.h"
 
 #include <cstring>
@@ -14,28 +15,24 @@ namespace essentials {
 const char* TAG_WIFI = "wifi";
 
 struct Wifi::Private {
-  enum class Mode {
-    None = 0, Station, Ap
-  };
-
   EventGroupHandle_t wifiEvents = xEventGroupCreate();
   int retryAttempts = 0;
-  Mode mode{Mode::None};
   bool isConnected = false;
   std::optional<Ipv4Address> stationIp{};
+  esp_netif_t* netInterface = nullptr;
 
   static constexpr int WIFI_CONNECTED_BIT = BIT0;
   static constexpr int WIFI_FAIL_BIT = BIT1;
 
   void connect(std::string_view ssid, std::string_view password, int connectionTimeout) {
     disconnect();
-    mode = Mode::Station;
 
     ESP_LOGI(TAG_WIFI, "connecting to wifi");
 
     nvs_flash_init();
-    tcpip_adapter_init();
+    esp_netif_init();
     esp_event_loop_create_default();
+    netInterface = esp_netif_create_default_wifi_sta();
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     auto error = esp_wifi_init(&cfg);
@@ -132,10 +129,10 @@ struct Wifi::Private {
 
   void startAccessPoint(std::string_view ssid, std::string_view password, Channel channel) {
     disconnect();
-    mode = Mode::Ap;
 
-    tcpip_adapter_init();
+    esp_netif_init();
     esp_event_loop_create_default();
+    netInterface = esp_netif_create_default_wifi_ap();
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     auto error = esp_wifi_init(&cfg);
@@ -191,7 +188,9 @@ struct Wifi::Private {
   }
 
   void disconnect() {
-    mode = Mode::None;
+    esp_netif_destroy(netInterface);
+    netInterface = nullptr;
+
     ESP_LOGI(TAG_WIFI, "disconnecting wifi");
 
     esp_event_handler_unregister(
@@ -254,20 +253,14 @@ bool Wifi::isConnected() const {
 }
 
 std::optional<Ipv4Address> Wifi::ipv4() const {
-  switch (p->mode) {
-    case Private::Mode::Ap:
-      tcpip_adapter_ip_info_t info;
-      if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &info) != ESP_OK)
-        return std::nullopt;
-      return Ipv4Address{info.ip.addr};
+  if (!p->netInterface) 
+    return std::nullopt;
 
-    case Private::Mode::Station:
-      return p->stationIp;
-    
-    case Private::Mode::None:
-      return std::nullopt;
-  }
-  return std::nullopt;
+  esp_netif_ip_info_t info;
+  if (esp_netif_get_ip_info(p->netInterface, &info) != ESP_OK)
+    return std::nullopt;
+
+  return Ipv4Address{info.ip.addr};
 }
 
 void Wifi::startAccessPoint(std::string_view ssid, std::string_view password, Channel channel) {
