@@ -263,6 +263,14 @@ std::optional<Ipv4Address> Wifi::ipv4() const {
   return Ipv4Address{info.ip.addr};
 }
 
+std::optional<int> Wifi::rssi() const {
+  wifi_ap_record_t info;
+  if (esp_wifi_sta_get_ap_info(&info) != ESP_OK)
+    return std::nullopt;
+
+  return info.rssi;
+}
+
 void Wifi::startAccessPoint(std::string_view ssid, std::string_view password, Channel channel) {
   p->startAccessPoint(ssid, password, channel);
 }
