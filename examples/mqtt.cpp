@@ -60,7 +60,17 @@ void exampleApp() {
   std::string user = *mqttUser;
   std::string pass = *mqttPass;
   es::Mqtt::ConnectionInfo mqttInfo{url, mqttCert, user, pass};
-  es::Mqtt mqtt{mqttInfo, std::string_view{mqttPrefix}};
+  es::Mqtt mqtt{
+    mqttInfo,
+    std::string_view{mqttPrefix},
+    std::chrono::seconds{30},
+    es::Mqtt::LastWillMessage{
+      "last/will",
+      "Last will message",
+      es::Mqtt::Qos::Qos0,
+      false
+    }
+  );
 
   // task which publishes device info every second
   xTaskCreate(

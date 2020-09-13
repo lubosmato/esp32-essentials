@@ -15,6 +15,9 @@ struct Mqtt::Private {
   std::string topicsPrefix;
   esp_mqtt_client_handle_t client;
   bool isConnected = false;
+  std::chrono::seconds keepAlive;
+  std::optional<LastWillMessage> lastWillMessage;
+  std::string lwtFullTopic{};
 
   std::unordered_multimap<std::string, Subscription*> subscribers;
 
@@ -23,14 +26,31 @@ struct Mqtt::Private {
     std::string_view cert, 
     std::string_view username, 
     std::string_view password, 
-    std::string_view topicsPrefix
-  ) : uri(uri), cert(cert), username(username), password(password), topicsPrefix(topicsPrefix) {
+    std::string_view topicsPrefix,
+    std::chrono::seconds keepAlive,
+    std::optional<LastWillMessage> lastWillMessage
+  ) : uri(uri),
+    cert(cert),
+    username(username),
+    password(password),
+    topicsPrefix(topicsPrefix),
+    keepAlive(keepAlive),
+    lastWillMessage(std::move(lastWillMessage)) {
 
     esp_mqtt_client_config_t config{};
+    if (this->lastWillMessage) {
+      lwtFullTopic = makeTopic(this->lastWillMessage->topic);
+      config.lwt_topic = lwtFullTopic.c_str();
+      config.lwt_msg = this->lastWillMessage->message.c_str();
+      config.lwt_msg_len = this->lastWillMessage->message.size();
+      config.lwt_qos = int(this->lastWillMessage->qos);
+      config.lwt_retain = this->lastWillMessage->isRetained;
+    }
     config.uri = this->uri.c_str();
     config.cert_pem = cert.data();
     config.username = this->username.c_str();
     config.password = this->password.c_str();
+    config.keepalive = keepAlive.count();
 
     ESP_LOGI(TAG_MQTT, "Free memory: %d bytes", esp_get_free_heap_size());
     client = esp_mqtt_client_init(&config);
@@ -104,19 +124,26 @@ struct Mqtt::Private {
         ESP_LOGE(TAG_MQTT, "Unknown error type: 0x%x", event->error_handle->error_type);
       }
     }
+    else if (eventId == MQTT_EVENT_BEFORE_CONNECT) {}
     else {
       ESP_LOGW(TAG_MQTT, "Unknown event, id: %d", event->event_id);
     }
   }
 };
 
-Mqtt::Mqtt(ConnectionInfo connectionInfo, std::string_view topicsPrefix) 
-  : p(std::make_unique<Private>(
-    connectionInfo.uri, 
-    connectionInfo.cert, 
-    connectionInfo.username, 
-    connectionInfo.password,
-    topicsPrefix)) {}
+Mqtt::Mqtt(
+  ConnectionInfo connectionInfo,
+  std::string_view topicsPrefix,
+  std::chrono::seconds keepAlive,
+  std::optional<LastWillMessage> lastWillMessage
+) : p(std::make_unique<Private>(
+  connectionInfo.uri,
+  connectionInfo.cert,
+  connectionInfo.username,
+  connectionInfo.password,
+  topicsPrefix,
+  keepAlive,
+  lastWillMessage)) {}
 Mqtt::~Mqtt() = default;
 
 

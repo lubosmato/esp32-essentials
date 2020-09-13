@@ -9,6 +9,7 @@
 #include <cmath>
 #include <limits>
 #include <array>
+#include <chrono>
 
 namespace essentials {
 
@@ -43,7 +44,18 @@ struct Mqtt {
     std::function<void()> _unsubscribe;
   };
 
-  Mqtt(ConnectionInfo connectionInfo, std::string_view topicsPrefix);
+  struct LastWillMessage {
+    std::string topic;
+    std::string message;
+    Qos qos;
+    bool isRetained;
+  };
+
+  Mqtt(
+    ConnectionInfo connectionInfo,
+    std::string_view topicsPrefix,
+    std::chrono::seconds keepAlive = std::chrono::seconds{120},
+    std::optional<LastWillMessage> lastWillMessage = std::nullopt);
   ~Mqtt();
 
   // TODO implement subscription to multi-level and single-level wildcard topics (eg. 'example/#', 'example/+/temperature')
