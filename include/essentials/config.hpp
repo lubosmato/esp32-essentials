@@ -33,7 +33,7 @@ public:
     void _load() {
       if constexpr (std::is_same_v<T, std::string>) {
         int size = _config._storage.size(_key);
-        if (size < 0) {
+        if (size <= 0) {
           _value = _defaultValue;
           _save();
         } else {
