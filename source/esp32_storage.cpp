@@ -1,8 +1,9 @@
 #include "essentials/esp32_storage.hpp"
 
-#include <stdexcept>
 #include "esp_system.h"
 #include "nvs_flash.h"
+
+#include <stdexcept>
 
 namespace essentials {
 
@@ -29,7 +30,7 @@ std::vector<uint8_t> Esp32Storage::read(std::string_view key, int size) const {
     buffer.clear();
     return buffer;
   }
-  if(error != ESP_OK) {
+  if (error != ESP_OK) {
     throw std::runtime_error("error while getting NVS blob");
   }
 
@@ -38,7 +39,7 @@ std::vector<uint8_t> Esp32Storage::read(std::string_view key, int size) const {
 
 void Esp32Storage::write(std::string_view key, Span<uint8_t> data) {
   esp_err_t error = nvs_set_blob(_nvsHandle, std::string(key).c_str(), data.data, data.size);
-  if(error != ESP_OK) {
+  if (error != ESP_OK) {
     throw std::runtime_error("error while writing to NVS");
   }
 

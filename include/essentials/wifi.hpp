@@ -1,9 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <string_view>
-#include <string>
 #include <optional>
+#include <string>
+#include <string_view>
 
 namespace essentials {
 
@@ -13,15 +13,7 @@ struct Ipv4Address {
 };
 
 struct Wifi {
-  enum class Channel : uint8_t {
-    Channel1 = 1,
-    Channel2,
-    Channel3,
-    Channel4,
-    Channel5,
-    Channel6,
-    Channel7
-  };
+  enum class Channel : uint8_t { Channel1 = 1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7 };
   Wifi();
   ~Wifi();
   bool connect(std::string_view ssid, std::string_view password, int connectionTimeout = 15000);
@@ -30,6 +22,7 @@ struct Wifi {
   std::optional<Ipv4Address> ipv4() const;
   std::optional<int> rssi() const;
   void startAccessPoint(std::string_view ssid, std::string_view password, Channel channel);
+
 private:
   struct Private;
   std::unique_ptr<Private> p;

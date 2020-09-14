@@ -2,7 +2,7 @@
 
 namespace essentials {
 
-Config::Config(PersistentStorage& storage) 
-  : _storage(storage) {}
+Config::Config(PersistentStorage& storage) : _storage(storage) {
+}
 
 }

@@ -1,9 +1,10 @@
 #pragma once
 
-#include <memory>
-#include <string_view>
-#include <string>
 #include "essentials/config.hpp"
+
+#include <memory>
+#include <string>
+#include <string_view>
 
 namespace essentials {
 

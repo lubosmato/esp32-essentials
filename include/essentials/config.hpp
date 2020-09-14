@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
 #include "essentials/persistent_storage.hpp"
+
+#include <string>
 
 namespace essentials {
 
 class Config {
-
 protected:
   PersistentStorage& _storage;
 
@@ -15,20 +15,20 @@ public:
 
   template<typename T>
   class Value {
-    static_assert(
-      std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, std::string>, 
-      "Only integral, floating point types and std::string type are allowed"
-    );
+    static_assert(std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, std::string>,
+      "Only integral, floating point types and std::string type are allowed");
 
     Config& _config;
     T _value;
     T _defaultValue;
     std::string _key;
     static constexpr int _dataSize = sizeof(T);
-    
+
     friend class Config;
 
-    Value(Config& config, std::string_view key, T defaultValue) : _config(config), _value(defaultValue), _defaultValue(defaultValue), _key(key) {}
+    Value(Config& config, std::string_view key, T defaultValue) :
+      _config(config), _value(defaultValue), _defaultValue(defaultValue), _key(key) {
+    }
 
     void _load() {
       if constexpr (std::is_same_v<T, std::string>) {
@@ -53,9 +53,9 @@ public:
 
     void _save() {
       if constexpr (std::is_same_v<T, std::string>) {
-        _config._storage.write(_key, { reinterpret_cast<uint8_t*>(_value.data()), _value.size() });
+        _config._storage.write(_key, {reinterpret_cast<uint8_t*>(_value.data()), _value.size()});
       } else {
-        _config._storage.write(_key, { reinterpret_cast<uint8_t*>(&_value), _dataSize });
+        _config._storage.write(_key, {reinterpret_cast<uint8_t*>(&_value), _dataSize});
       }
     }
 
@@ -64,7 +64,7 @@ public:
       _load();
       return _value;
     }
-    
+
     const T* operator->() {
       _load();
       return &_value;
@@ -76,12 +76,11 @@ public:
       return *this;
     }
   };
-  
+
   template<typename T>
   Value<T> get(std::string_view key, T defaultValue = T{}) {
     return Value<T>{*this, key, defaultValue};
   }
-
 };
 
 }

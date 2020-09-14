@@ -1,11 +1,10 @@
 #include "essentials/wifi.hpp"
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
-
-#include "esp_wifi.h"
 #include "esp_log.h"
 #include "esp_netif.h"
+#include "esp_wifi.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
 #include "nvs_flash.h"
 
 #include <cstring>
@@ -38,19 +37,9 @@ struct Wifi::Private {
     auto error = esp_wifi_init(&cfg);
     ESP_ERROR_CHECK(error);
 
-    error |= esp_event_handler_register(
-      WIFI_EVENT, 
-      ESP_EVENT_ANY_ID, 
-      &Private::stationEventHandler, 
-      this
-    );
+    error |= esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &Private::stationEventHandler, this);
     ESP_ERROR_CHECK(error);
-    error |= esp_event_handler_register(
-      IP_EVENT, 
-      IP_EVENT_STA_GOT_IP, 
-      &Private::stationEventHandler, 
-      this
-    );
+    error |= esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &Private::stationEventHandler, this);
     ESP_ERROR_CHECK(error);
 
     wifi_config_t wifiConfig{};
@@ -71,35 +60,17 @@ struct Wifi::Private {
     std::string ssidToPrint{ssid};
     std::string passwordToPrint{password};
     ESP_LOGI(
-      TAG_WIFI, 
-      "trying to connect to AP SSID: '%s', password: '%s'...",
-      ssidToPrint.c_str(), 
-      passwordToPrint.c_str()
-    );
+      TAG_WIFI, "trying to connect to AP SSID: '%s', password: '%s'...", ssidToPrint.c_str(), passwordToPrint.c_str());
 
     EventBits_t bits = xEventGroupWaitBits(
-      wifiEvents,
-      WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
-      pdFALSE,
-      pdFALSE,
-      pdMS_TO_TICKS(connectionTimeout)
-    );
+      wifiEvents, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, pdMS_TO_TICKS(connectionTimeout));
 
     if (bits & WIFI_CONNECTED_BIT) {
-      ESP_LOGI(
-        TAG_WIFI, 
-        "connected to ap SSID: '%s', password: '%s'",
-        ssidToPrint.c_str(), 
-        passwordToPrint.c_str()
-      );
+      ESP_LOGI(TAG_WIFI, "connected to ap SSID: '%s', password: '%s'", ssidToPrint.c_str(), passwordToPrint.c_str());
       isConnected = true;
     } else if (bits & WIFI_FAIL_BIT) {
       ESP_LOGW(
-        TAG_WIFI, 
-        "failed to connect to SSID: '%s', password: '%s'",
-        ssidToPrint.c_str(), 
-        passwordToPrint.c_str()
-      );
+        TAG_WIFI, "failed to connect to SSID: '%s', password: '%s'", ssidToPrint.c_str(), passwordToPrint.c_str());
       isConnected = false;
     } else {
       ESP_LOGW(TAG_WIFI, "wifi connection timed out");
@@ -107,12 +78,7 @@ struct Wifi::Private {
     }
   }
 
-  static void stationEventHandler(
-    void* arg, 
-    esp_event_base_t eventBase, 
-    int32_t eventId, 
-    void* eventData
-  ) {
+  static void stationEventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId, void* eventData) {
     Private* p = static_cast<Private*>(arg);
     if (eventBase == WIFI_EVENT && eventId == WIFI_EVENT_STA_START) {
       esp_wifi_connect();
@@ -137,26 +103,16 @@ struct Wifi::Private {
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     auto error = esp_wifi_init(&cfg);
 
-    error |= esp_event_handler_register(
-      WIFI_EVENT, 
-      ESP_EVENT_ANY_ID, 
-      &Private::apEventHandler, 
-      this
-    );
-    
+    error |= esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &Private::apEventHandler, this);
+
     std::string ssidToPrint{ssid};
     std::string passwordToPrint{password};
 
-    ESP_LOGI(
-      TAG_WIFI, 
-      "initializing AP SSID: '%s', password: '%s', channel: '%d'",
-      ssidToPrint.c_str(), 
-      passwordToPrint.c_str(), 
-      uint8_t(channel)
-    );
+    ESP_LOGI(TAG_WIFI, "initializing AP SSID: '%s', password: '%s', channel: '%d'", ssidToPrint.c_str(),
+      passwordToPrint.c_str(), uint8_t(channel));
 
     wifi_config_t wifiConfig{};
-    
+
     std::memcpy(wifiConfig.ap.ssid, ssid.data(), ssid.size());
     std::memcpy(wifiConfig.ap.password, password.data(), password.size());
     wifiConfig.ap.ssid_len = ssid.size();
@@ -170,19 +126,14 @@ struct Wifi::Private {
     ESP_ERROR_CHECK(error);
   }
 
-  static void apEventHandler(
-    void* arg, 
-    esp_event_base_t eventBase, 
-    int32_t eventId, 
-    void* eventData
-  ) {
+  static void apEventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId, void* eventData) {
     // Private* p = static_cast<Private*>(arg);
 
     if (eventId == WIFI_EVENT_AP_STACONNECTED) {
-      wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) eventData;
+      wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*)eventData;
       ESP_LOGI(TAG_WIFI, "station %02x:%02x:%02x:%02x:%02x:%02x join, AID=%d", MAC2STR(event->mac), event->aid);
     } else if (eventId == WIFI_EVENT_AP_STADISCONNECTED) {
-      wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) eventData;
+      wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*)eventData;
       ESP_LOGI(TAG_WIFI, "station %02x:%02x:%02x:%02x:%02x:%02x leave, AID=%d", MAC2STR(event->mac), event->aid);
     }
   }
@@ -193,21 +144,9 @@ struct Wifi::Private {
 
     ESP_LOGI(TAG_WIFI, "disconnecting wifi");
 
-    esp_event_handler_unregister(
-      WIFI_EVENT,
-      ESP_EVENT_ANY_ID,
-      &Private::stationEventHandler
-    );
-    esp_event_handler_unregister(
-      IP_EVENT,
-      IP_EVENT_STA_GOT_IP,
-      &Private::stationEventHandler
-    );
-    esp_event_handler_unregister(
-      WIFI_EVENT,
-      ESP_EVENT_ANY_ID,
-      &Private::apEventHandler
-    );
+    esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, &Private::stationEventHandler);
+    esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, &Private::stationEventHandler);
+    esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, &Private::apEventHandler);
 
     esp_wifi_disconnect();
     esp_wifi_stop();
@@ -235,7 +174,8 @@ std::string Ipv4Address::toString() const {
   return ip;
 }
 
-Wifi::Wifi() : p(std::make_unique<Private>()) { }
+Wifi::Wifi() : p(std::make_unique<Private>()) {
+}
 
 Wifi::~Wifi() = default;
 
@@ -253,20 +193,17 @@ bool Wifi::isConnected() const {
 }
 
 std::optional<Ipv4Address> Wifi::ipv4() const {
-  if (!p->netInterface) 
-    return std::nullopt;
+  if (!p->netInterface) return std::nullopt;
 
   esp_netif_ip_info_t info;
-  if (esp_netif_get_ip_info(p->netInterface, &info) != ESP_OK)
-    return std::nullopt;
+  if (esp_netif_get_ip_info(p->netInterface, &info) != ESP_OK) return std::nullopt;
 
   return Ipv4Address{info.ip.addr};
 }
 
 std::optional<int> Wifi::rssi() const {
   wifi_ap_record_t info;
-  if (esp_wifi_sta_get_ap_info(&info) != ESP_OK)
-    return std::nullopt;
+  if (esp_wifi_sta_get_ap_info(&info) != ESP_OK) return std::nullopt;
 
   return info.rssi;
 }

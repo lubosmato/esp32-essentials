@@ -26,21 +26,10 @@ struct SettingsServer::Private {
   std::string deviceName{};
   std::string version{};
 
-  std::array<httpd_uri_t, 4> handlerDefinitions{
-    httpd_uri_t{
-      "/", HTTP_GET, &Private::getIndex, this
-    },
-    httpd_uri_t{
-      "/app.js", HTTP_GET, &Private::getAppJs, this
-    },
-    httpd_uri_t{
-      "/settings", HTTP_GET, &Private::getSettings, this
-    },
-    
-    httpd_uri_t{
-      "/settings", HTTP_POST, &Private::setSettings, this
-    }
-  };
+  std::array<httpd_uri_t, 4> handlerDefinitions{httpd_uri_t{"/", HTTP_GET, &Private::getIndex, this},
+    httpd_uri_t{"/app.js", HTTP_GET, &Private::getAppJs, this},
+    httpd_uri_t{"/settings", HTTP_GET, &Private::getSettings, this},
+    httpd_uri_t{"/settings", HTTP_POST, &Private::setSettings, this}};
 
   static std::optional<std::string> readBody(httpd_req_t* req) {
     std::string body;
@@ -86,7 +75,7 @@ struct SettingsServer::Private {
   static esp_err_t setSettings(httpd_req_t* req) {
     Private* p = static_cast<Private*>(req->user_ctx);
     std::optional<std::string> postData = readBody(req);
-    if (postData) { 
+    if (postData) {
       p->setSettingsFromJson(std::move(*postData));
     }
     httpd_resp_set_status(req, "302 Found");
@@ -99,20 +88,15 @@ struct SettingsServer::Private {
       [](void*) {
         vTaskDelay(pdMS_TO_TICKS(2000));
         esp_restart();
-      }, 
-      "restartTask", 
-      1024, 
-      nullptr, 
-      tskIDLE_PRIORITY, 
-      nullptr
-    );
+      },
+      "restartTask", 1024, nullptr, tskIDLE_PRIORITY, nullptr);
 
     return ESP_OK;
   }
 
   void setSettingsFromJson(std::string jsonContent) {
     cJSON* json = cJSON_Parse(jsonContent.c_str());
-    
+
     for (auto& field : fields) {
       field.value = cJSON_GetObjectItem(json, field.label.c_str())->valuestring;
     }
@@ -159,11 +143,11 @@ struct SettingsServer::Private {
   ~Private() {
     stop();
   }
-
 };
 
-SettingsServer::SettingsServer(uint16_t port, std::string_view deviceName, std::string_view version, std::vector<Field> fields) 
-  : p(std::make_unique<Private>()) {
+SettingsServer::SettingsServer(
+  uint16_t port, std::string_view deviceName, std::string_view version, std::vector<Field> fields) :
+  p(std::make_unique<Private>()) {
   p->port = port;
   p->deviceName = deviceName;
   p->version = version;

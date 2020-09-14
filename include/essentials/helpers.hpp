@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 namespace essentials {
 
 // TODO replace with std::span when esp-idf will use toolchain with std::span

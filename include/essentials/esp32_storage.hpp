@@ -1,12 +1,13 @@
 #pragma once
 
-#include <string>
 #include "essentials/persistent_storage.hpp"
 #include "nvs.h"
 
+#include <string>
+
 namespace essentials {
 
-struct Esp32Storage : PersistentStorage {  
+struct Esp32Storage : PersistentStorage {
   explicit Esp32Storage(std::string_view name);
   ~Esp32Storage();
 
@@ -14,6 +15,7 @@ struct Esp32Storage : PersistentStorage {
   std::vector<uint8_t> read(std::string_view key, int size) const override;
   void write(std::string_view key, Span<uint8_t> data) override;
   void clear() override;
+
 private:
   void initialize();
   nvs_handle_t _nvsHandle;
