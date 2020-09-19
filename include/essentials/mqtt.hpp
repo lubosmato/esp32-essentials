@@ -50,6 +50,7 @@ struct Mqtt {
     bool isRetained;
   };
 
+  // TODO separate connection from constructor and add timeout
   Mqtt(ConnectionInfo connectionInfo, std::string_view topicsPrefix,
     std::chrono::seconds keepAlive = std::chrono::seconds{120},
     std::optional<LastWillMessage> lastWillMessage = std::nullopt);
