@@ -1,13 +1,11 @@
 #include "essentials/config.hpp"
-#include "essentials/esp32_storage.hpp"
 
 #include "esp_system.h"
-
+#include "essentials/esp32_storage.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-extern "C"
-void app_main() {
+extern "C" void app_main() {
   namespace es = essentials;
   es::Esp32Storage configStorage{"config"};
   es::Config config{configStorage};

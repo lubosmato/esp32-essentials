@@ -21,8 +21,13 @@ struct Mqtt::Private {
 
   std::unordered_multimap<std::string, Subscription*> subscribers;
 
-  Private(std::string_view uri, std::string_view cert, std::string_view username, std::string_view password,
-    std::string_view topicsPrefix, std::chrono::seconds keepAlive, std::optional<LastWillMessage> lastWillMessage) :
+  Private(std::string_view uri,
+    std::string_view cert,
+    std::string_view username,
+    std::string_view password,
+    std::string_view topicsPrefix,
+    std::chrono::seconds keepAlive,
+    std::optional<LastWillMessage> lastWillMessage) :
     uri(uri),
     cert(cert),
     username(username),
@@ -131,10 +136,17 @@ struct Mqtt::Private {
   }
 };
 
-Mqtt::Mqtt(ConnectionInfo connectionInfo, std::string_view topicsPrefix, std::chrono::seconds keepAlive,
+Mqtt::Mqtt(ConnectionInfo connectionInfo,
+  std::string_view topicsPrefix,
+  std::chrono::seconds keepAlive,
   std::optional<LastWillMessage> lastWillMessage) :
-  p(std::make_unique<Private>(connectionInfo.uri, connectionInfo.cert, connectionInfo.username, connectionInfo.password,
-    topicsPrefix, keepAlive, lastWillMessage)) {
+  p(std::make_unique<Private>(connectionInfo.uri,
+    connectionInfo.cert,
+    connectionInfo.username,
+    connectionInfo.password,
+    topicsPrefix,
+    keepAlive,
+    lastWillMessage)) {
 }
 Mqtt::~Mqtt() = default;
 

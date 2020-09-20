@@ -5,11 +5,10 @@
 namespace essentials {
 
 struct DeviceInfo {
-  virtual ~DeviceInfo() = default;
-
-  virtual std::size_t usedHeap() const = 0;
-  virtual std::size_t freeHeap() const = 0;
-  virtual std::string uniqueId() const = 0;
+  std::size_t totalHeap() const;
+  std::size_t freeHeap() const;
+  std::string uniqueId() const;
+  int64_t uptime() const;
 };
 
 }

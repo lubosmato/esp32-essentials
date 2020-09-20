@@ -108,8 +108,11 @@ struct Wifi::Private {
     std::string ssidToPrint{ssid};
     std::string passwordToPrint{password};
 
-    ESP_LOGI(TAG_WIFI, "initializing AP SSID: '%s', password: '%s', channel: '%d'", ssidToPrint.c_str(),
-      passwordToPrint.c_str(), uint8_t(channel));
+    ESP_LOGI(TAG_WIFI,
+      "initializing AP SSID: '%s', password: '%s', channel: '%d'",
+      ssidToPrint.c_str(),
+      passwordToPrint.c_str(),
+      uint8_t(channel));
 
     wifi_config_t wifiConfig{};
 

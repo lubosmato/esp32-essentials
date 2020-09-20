@@ -89,7 +89,11 @@ struct SettingsServer::Private {
         vTaskDelay(pdMS_TO_TICKS(2000));
         esp_restart();
       },
-      "restartTask", 1024, nullptr, tskIDLE_PRIORITY, nullptr);
+      "restartTask",
+      1024,
+      nullptr,
+      tskIDLE_PRIORITY,
+      nullptr);
 
     return ESP_OK;
   }
