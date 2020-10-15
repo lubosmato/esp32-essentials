@@ -10,7 +10,8 @@ extern "C" void app_main() {
   es::DeviceInfo deviceInfo{};
   printf("Unique id: %s\n", deviceInfo.uniqueId().c_str());
   printf("Free heap: %d\n", deviceInfo.freeHeap());
-  printf("Used heap: %d\n", deviceInfo.usedHeap());
+  printf("Total heap: %d\n", deviceInfo.totalHeap());
+  printf("Uptime: %lld\n", deviceInfo.uptime());
 
   vTaskDelay(pdMS_TO_TICKS(5000));
   esp_restart();
