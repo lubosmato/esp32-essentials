@@ -49,8 +49,8 @@ C++17 ESP-IDF v4.1 component with boilerplate for WiFi, MQTT, configuration, per
 
 # TODO
 - [x] Migrate to esp-idf v4.1
-- [ ] Fix Esp32Storage::clear() - it mustn't clear all NVS
-- [ ] Add wait for MQTT connection feature with timeout (similar as Wifi)
+- [x] Fix Esp32Storage::clear() - it mustn't clear all NVS
+- [x] Add wait for MQTT connection feature with timeout (similar as Wifi)
 - [ ] Add more device info
 - [ ] MQTT subscription to multi and single level (heavy feature, maybe YAGNI)
 - [ ] Check all error codes and throw
