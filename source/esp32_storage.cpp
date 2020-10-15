@@ -50,9 +50,9 @@ void Esp32Storage::write(std::string_view key, Span<uint8_t> data) {
 }
 
 void Esp32Storage::clear() {
-  esp_err_t error = nvs_flash_erase();
+  esp_err_t error = nvs_erase_all(_nvsHandle);
   if (error != ESP_OK) {
-    throw std::runtime_error("error in NVS initialization, couldn't erase flash");
+    throw std::runtime_error("couldn't erase flash");
   }
   initialize();
 }
