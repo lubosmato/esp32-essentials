@@ -50,12 +50,16 @@ struct Mqtt {
     bool isRetained;
   };
 
-  // TODO separate connection from constructor and add timeout
+  // TODO separate connection from constructor
   Mqtt(ConnectionInfo connectionInfo,
     std::string_view topicsPrefix,
     std::chrono::seconds keepAlive = std::chrono::seconds{120},
-    std::optional<LastWillMessage> lastWillMessage = std::nullopt);
+    std::optional<LastWillMessage> lastWillMessage = std::nullopt,
+    std::function<void()> onConnect = nullptr,
+    std::function<void()> onDisconnect = nullptr);
   ~Mqtt();
+
+  bool isConnected() const;
 
   // TODO implement subscription to multi-level and single-level wildcard topics (eg. 'example/#',
   // 'example/+/temperature')

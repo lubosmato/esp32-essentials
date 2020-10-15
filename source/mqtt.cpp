@@ -18,6 +18,8 @@ struct Mqtt::Private {
   std::chrono::seconds keepAlive;
   std::optional<LastWillMessage> lastWillMessage;
   std::string lwtFullTopic{};
+  std::function<void()> onConnect;
+  std::function<void()> onDisconnect;
 
   std::unordered_multimap<std::string, Subscription*> subscribers;
 
@@ -27,14 +29,18 @@ struct Mqtt::Private {
     std::string_view password,
     std::string_view topicsPrefix,
     std::chrono::seconds keepAlive,
-    std::optional<LastWillMessage> lastWillMessage) :
+    std::optional<LastWillMessage> lastWillMessage,
+    std::function<void()> onConnect,
+    std::function<void()> onDisconnect) :
     uri(uri),
     cert(cert),
     username(username),
     password(password),
     topicsPrefix(topicsPrefix),
     keepAlive(keepAlive),
-    lastWillMessage(std::move(lastWillMessage)) {
+    lastWillMessage(std::move(lastWillMessage)),
+    onConnect(onConnect),
+    onDisconnect(onDisconnect) {
     esp_mqtt_client_config_t config{};
     if (this->lastWillMessage) {
       lwtFullTopic = makeTopic(this->lastWillMessage->topic);
@@ -93,15 +99,19 @@ struct Mqtt::Private {
   static void eventHandler(void* arg, esp_event_base_t base, int32_t eventId, void* eventData) {
     auto* p = static_cast<Private*>(arg);
     auto event = static_cast<esp_mqtt_event_handle_t>(eventData);
+    bool shouldCallDisconnectCallback = p->isConnected;
+
     switch (eventId) {
       case MQTT_EVENT_CONNECTED: {
         p->isConnected = true;
         for (const auto& [prefixedTopic, subscriber] : p->subscribers) {
           esp_mqtt_client_subscribe(p->client, prefixedTopic.c_str(), int(subscriber->qos));
         }
+        if (p->onConnect) p->onConnect();
       } break;
       case MQTT_EVENT_DISCONNECTED:
         p->isConnected = false;
+        if (shouldCallDisconnectCallback && p->onDisconnect) p->onDisconnect();
         break;
       case MQTT_EVENT_SUBSCRIBED:
         break;
@@ -126,6 +136,8 @@ struct Mqtt::Private {
         } else {
           ESP_LOGE(TAG_MQTT, "Unknown error type: 0x%x", event->error_handle->error_type);
         }
+        p->isConnected = false;
+        if (shouldCallDisconnectCallback && p->onDisconnect) p->onDisconnect();
       } break;
       case MQTT_EVENT_BEFORE_CONNECT:
         break;
@@ -139,16 +151,24 @@ struct Mqtt::Private {
 Mqtt::Mqtt(ConnectionInfo connectionInfo,
   std::string_view topicsPrefix,
   std::chrono::seconds keepAlive,
-  std::optional<LastWillMessage> lastWillMessage) :
+  std::optional<LastWillMessage> lastWillMessage,
+  std::function<void()> onConnect,
+  std::function<void()> onDisconnect) :
   p(std::make_unique<Private>(connectionInfo.uri,
     connectionInfo.cert,
     connectionInfo.username,
     connectionInfo.password,
     topicsPrefix,
     keepAlive,
-    lastWillMessage)) {
+    lastWillMessage,
+    onConnect,
+    onDisconnect)) {
 }
 Mqtt::~Mqtt() = default;
+
+bool Mqtt::isConnected() const {
+  return p->isConnected;
+}
 
 std::unique_ptr<Mqtt::Subscription> Mqtt::subscribe(
   std::string_view topic, Qos qos, std::function<void(std::string_view)> reaction) {
