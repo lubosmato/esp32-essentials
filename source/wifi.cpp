@@ -4,7 +4,6 @@
 #include "esp_netif.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
 #include "nvs_flash.h"
 
 #include <cstring>
@@ -14,16 +13,13 @@ namespace essentials {
 const char* TAG_WIFI = "wifi";
 
 struct Wifi::Private {
-  EventGroupHandle_t wifiEvents = xEventGroupCreate();
-  int retryAttempts = 0;
   bool isConnected = false;
   std::optional<Ipv4Address> stationIp{};
   esp_netif_t* netInterface = nullptr;
+  std::function<void()> onConnect{};
+  std::function<void()> onDisconnect{};
 
-  static constexpr int WIFI_CONNECTED_BIT = BIT0;
-  static constexpr int WIFI_FAIL_BIT = BIT1;
-
-  void connect(std::string_view ssid, std::string_view password, int connectionTimeout) {
+  void connect(std::string_view ssid, std::string_view password) {
     disconnect();
 
     ESP_LOGI(TAG_WIFI, "connecting to wifi");
@@ -57,25 +53,10 @@ struct Wifi::Private {
     error |= esp_wifi_start();
     ESP_ERROR_CHECK(error);
 
-    std::string ssidToPrint{ssid};
-    std::string passwordToPrint{password};
-    ESP_LOGI(
-      TAG_WIFI, "trying to connect to AP SSID: '%s', password: '%s'...", ssidToPrint.c_str(), passwordToPrint.c_str());
-
-    EventBits_t bits = xEventGroupWaitBits(
-      wifiEvents, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, pdMS_TO_TICKS(connectionTimeout));
-
-    if (bits & WIFI_CONNECTED_BIT) {
-      ESP_LOGI(TAG_WIFI, "connected to ap SSID: '%s', password: '%s'", ssidToPrint.c_str(), passwordToPrint.c_str());
-      isConnected = true;
-    } else if (bits & WIFI_FAIL_BIT) {
-      ESP_LOGW(
-        TAG_WIFI, "failed to connect to SSID: '%s', password: '%s'", ssidToPrint.c_str(), passwordToPrint.c_str());
-      isConnected = false;
-    } else {
-      ESP_LOGW(TAG_WIFI, "wifi connection timed out");
-      isConnected = false;
-    }
+    ESP_LOGI(TAG_WIFI,
+      "trying to connect to AP SSID: '%s', password: '%s'...",
+      std::string{ssid}.c_str(),
+      std::string{password}.c_str());
   }
 
   static void stationEventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId, void* eventData) {
@@ -83,13 +64,19 @@ struct Wifi::Private {
     if (eventBase == WIFI_EVENT && eventId == WIFI_EVENT_STA_START) {
       esp_wifi_connect();
     } else if (eventBase == WIFI_EVENT && eventId == WIFI_EVENT_STA_DISCONNECTED) {
+      bool shouldCallDisconnectCallback = p->isConnected;
+      p->isConnected = false;
       esp_wifi_connect();
       ESP_LOGI(TAG_WIFI, "re-trying to connect to the AP");
+      if (shouldCallDisconnectCallback && p->onDisconnect) p->onDisconnect();
     } else if (eventBase == IP_EVENT && eventId == IP_EVENT_STA_GOT_IP) {
       ip_event_got_ip_t* event = (ip_event_got_ip_t*)eventData;
       p->stationIp = Ipv4Address{event->ip_info.ip.addr};
+
+      ESP_LOGI(TAG_WIFI, "connected");
       ESP_LOGI(TAG_WIFI, "got ip: %s", p->stationIp->toString().c_str());
-      xEventGroupSetBits(p->wifiEvents, WIFI_CONNECTED_BIT);
+      p->isConnected = true;
+      if (p->onConnect) p->onConnect();
     }
   }
 
@@ -182,8 +169,16 @@ Wifi::Wifi() : p(std::make_unique<Private>()) {
 
 Wifi::~Wifi() = default;
 
-bool Wifi::connect(std::string_view ssid, std::string_view password, int connectionTimeout) {
-  p->connect(ssid, password, connectionTimeout);
+void Wifi::setConnectCallback(std::function<void()> callback) {
+  p->onConnect = callback;
+}
+
+void Wifi::setDisconnectCallback(std::function<void()> callback) {
+  p->onDisconnect = callback;
+}
+
+bool Wifi::connect(std::string_view ssid, std::string_view password) {
+  p->connect(ssid, password);
   return p->isConnected;
 }
 
