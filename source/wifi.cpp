@@ -206,6 +206,14 @@ std::optional<int> Wifi::rssi() const {
   return info.rssi;
 }
 
+int Wifi::signalStrength() const {
+  std::optional<int> rssi = this->rssi();
+  if (!rssi) return 0;
+
+  // this linearly maps rssi (range -100 to -10) to percentage (range 0 to 100)
+  return static_cast<int>(std::clamp((*rssi) * (10.0 / 9.0) + (1000.0 / 9.0), 0.0, 100.0));
+}
+
 void Wifi::startAccessPoint(std::string_view ssid, std::string_view password, Channel channel) {
   p->startAccessPoint(ssid, password, channel);
 }

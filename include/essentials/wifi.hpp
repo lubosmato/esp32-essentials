@@ -28,6 +28,7 @@ struct Wifi {
 
   std::optional<Ipv4Address> ipv4() const;
   std::optional<int> rssi() const;
+  int signalStrength() const;
 
   void startAccessPoint(std::string_view ssid, std::string_view password, Channel channel);
 
