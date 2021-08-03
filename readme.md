@@ -1,9 +1,9 @@
 # Essentials for ESP32
-C++17 ESP-IDF v4.1 component with boilerplate for WiFi, MQTT, configuration, persitent storage and device info.
+C++17 ESP-IDF v4.3 component with boilerplate for WiFi, MQTT, configuration, persitent storage and device info.
 
 # How to use
 
-0. Download esp-idf v4.1. There is a handy [extension](https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension) for `VSCode` which installs all stuff you need.
+0. Download esp-idf v4.3. There is a handy [extension](https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension) for `VSCode` which installs all stuff you need.
 
 1. Add this repo as a submodule into `components` folder:
     ```bash
@@ -59,3 +59,4 @@ C++17 ESP-IDF v4.1 component with boilerplate for WiFi, MQTT, configuration, per
 - [ ] Add tests
 - [ ] Use `std::span` when will be supported by esp-idf toolchain
 - [ ] Use `std::to_chars` and `std::from_chars` for floating point types when will be implemented in GCC
+- [x] Migrate to esp-idf v4.3

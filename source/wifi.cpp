@@ -48,7 +48,7 @@ struct Wifi::Private {
 
     error |= esp_wifi_set_mode(WIFI_MODE_STA);
     ESP_ERROR_CHECK(error);
-    error |= esp_wifi_set_config(ESP_IF_WIFI_STA, &wifiConfig);
+    error |= esp_wifi_set_config(WIFI_IF_STA, &wifiConfig);
     ESP_ERROR_CHECK(error);
     error |= esp_wifi_start();
     ESP_ERROR_CHECK(error);
@@ -111,7 +111,7 @@ struct Wifi::Private {
     wifiConfig.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
 
     error |= esp_wifi_set_mode(WIFI_MODE_AP);
-    error |= esp_wifi_set_config(ESP_IF_WIFI_AP, &wifiConfig);
+    error |= esp_wifi_set_config(WIFI_IF_AP, &wifiConfig);
     error |= esp_wifi_start();
     ESP_ERROR_CHECK(error);
   }
