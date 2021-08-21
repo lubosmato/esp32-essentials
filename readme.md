@@ -1,5 +1,106 @@
 # Essentials for ESP32
-C++17 ESP-IDF v4.3 component with boilerplate for WiFi, MQTT, configuration, persitent storage and device info.
+MQTT, WiFi, persistent configuration, web server and other useful things for ESP32. Main idea of Essentials is **build your MQTT API** easily:
+
+## MQTT
+```cpp
+es::Mqtt mqtt{...};
+std::vector<std::unique_ptr<es::Mqtt::Subscription>> subscribers;
+
+// value subscription
+int myValue = 0;
+subscribers.emplace_back(mqtt.subscribe("number", es::Mqtt::Qos::Qos0, myValue));
+
+// multiple subscriptions to same topic 'number'
+std::string myText{};
+subscribers.emplace_back(mqtt.subscribe("number", es::Mqtt::Qos::Qos0, myText));
+
+// generic publish for string, int, float, double, bool
+mqtt.publish("my/topic/int", 42, es::Mqtt::Qos::Qos0, false /*isRetained*/);
+
+// lambda subscription to a generic value type (string, string_view, int, float, double and bool supported)
+subscribers.emplace_back(
+  mqtt.subscribe<int>("number", es::Mqtt::Qos::Qos0, [](std::optional<int> value) {
+    if (value) {
+      printf("got number value: %d\n", *value);
+    }
+  })
+);
+
+// lambda subscription with publish
+subscribers.emplace_back(
+  mqtt.subscribe("ping", es::Mqtt::Qos::Qos0, [&mqtt](std::string_view data) {
+    std::string text = std::string{data};
+    printf("got ping: %s\n", text.c_str());
+    mqtt.publish("pong", "Pinging back :)", es::Mqtt::Qos::Qos0, false);
+  })
+);
+
+```
+
+## WiFi
+
+```cpp
+es::Wifi wifi;
+
+wifi.setConnectCallback([]() { printf("Successfully connected to wifi\n"); });
+wifi.setDisconnectCallback([]() { printf("Disconnected from wifi\n"); });
+
+wifi.connect("My SSID", "my password");
+
+vTaskDelay(pdMS_TO_TICKS(5000));
+
+if (!wifi.isConnected()) {
+  printf("Couldn't connect to the wifi. Starting WiFi AP.\n");
+  wifi.startAccessPoint("esp32", "12345678", es::Wifi::Channel::Channel5);
+}
+
+while (true) {
+  std::optional<es::Ipv4Address> ip = wifi.ipv4();
+  if (ip) {
+    printf("IP: %s\n", ip->toString().c_str());
+  } else {
+    printf("Don't have IP\n");
+  }
+  vTaskDelay(pdMS_TO_TICKS(5000));
+}
+```
+
+## Persistent config and web server for basic settings
+```cpp
+es::Esp32Storage configStorage{"config"};
+es::Config config{configStorage};
+
+auto ssid = config.get<std::string>("ssid");
+auto wifiPass = config.get<std::string>("wifiPass");
+auto myValue = config.get<std::string>("myValue");
+
+es::Esp32Storage mqttStorage{"mqtt"};
+es::Config mqttConfig{mqttStorage};
+auto mqttUrl = mqttConfig.get<std::string>("url");
+auto mqttUser = mqttConfig.get<std::string>("user");
+auto mqttPass = mqttConfig.get<std::string>("pass");
+
+es::Wifi wifi;
+es::SettingsServer settingsServer{80,
+  "My App",
+  "1.0.1",
+  {
+    // fields for web app
+    {"WiFi SSID", ssid},
+    {"WiFi Password", wifiPass},
+    {"MQTT URL", mqttUrl},
+    {"MQTT Username", mqttUser},
+    {"MQTT Password", mqttPass},
+  }};
+
+wifi.startAccessPoint("esp32", "12345678", es::Wifi::Channel::Channel5);
+
+settingsServer.start();
+```
+`es::SettingsServer` serves web app with custom fields which will be saved into persistent storage:
+![Settings Server](examples/settings_server.png)
+
+See more in [examples](examples/).
 
 # How to use
 
