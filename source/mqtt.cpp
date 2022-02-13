@@ -23,10 +23,13 @@ struct Mqtt::Private {
 
   std::unordered_multimap<std::string, Subscription*> subscribers;
 
+  std::string topicOfLastData;
+
   Private(std::string_view uri,
     std::string_view cert,
     std::string_view username,
     std::string_view password,
+    int32_t bufferSize,
     std::string_view topicsPrefix,
     std::chrono::seconds keepAlive,
     std::optional<LastWillMessage> lastWillMessage,
@@ -50,6 +53,7 @@ struct Mqtt::Private {
       config.lwt_qos = int(this->lastWillMessage->qos);
       config.lwt_retain = this->lastWillMessage->isRetained;
     }
+    config.buffer_size = bufferSize;
     config.uri = this->uri.c_str();
     config.cert_pem = cert.data();
     config.username = this->username.c_str();
@@ -67,8 +71,7 @@ struct Mqtt::Private {
     esp_mqtt_client_publish(client, prefixedTopic.c_str(), data.data(), data.size(), int(qos), isRetained ? 1 : 0);
   }
 
-  std::unique_ptr<Subscription> subscribe(
-    std::string_view topic, Qos qos, std::function<void(std::string_view)> reaction) {
+  std::unique_ptr<Subscription> subscribe(std::string_view topic, Qos qos, std::function<void(const Data&)> reaction) {
     std::string prefixedTopic = makeTopic(topic);
     if (isConnected) {
       esp_mqtt_client_subscribe(client, prefixedTopic.c_str(), int(qos));
@@ -98,7 +101,7 @@ struct Mqtt::Private {
 
   static void eventHandler(void* arg, esp_event_base_t base, int32_t eventId, void* eventData) {
     auto* p = static_cast<Private*>(arg);
-    auto event = static_cast<esp_mqtt_event_handle_t>(eventData);
+    esp_mqtt_event_handle_t event = static_cast<esp_mqtt_event_handle_t>(eventData);
     bool shouldCallDisconnectCallback = p->isConnected;
 
     switch (eventId) {
@@ -120,10 +123,18 @@ struct Mqtt::Private {
       case MQTT_EVENT_PUBLISHED:
         break;
       case MQTT_EVENT_DATA: {
-        std::string topic(event->topic, event->topic + event->topic_len);
+        // const bool isDataFragmented = event->dup; // NOTE for newer version of esp-idf (currently latest)
+        const bool isDataFragmented = event->topic == nullptr; // NOTE for esp-idf v4.4
+
+        const std::string topic =
+          isDataFragmented ? p->topicOfLastData : std::string(event->topic, event->topic + event->topic_len);
+        p->topicOfLastData = topic;
+
         const auto [begin, end] = p->subscribers.equal_range(topic);
+        Data data{std::string_view(event->data, event->data_len), event->current_data_offset, event->total_data_len};
+
         for (auto it = begin; it != end; it++) {
-          it->second->_reaction(std::string_view(event->data, event->data_len));
+          it->second->_reaction(data);
         }
       } break;
       case MQTT_EVENT_ERROR: {
@@ -153,11 +164,13 @@ Mqtt::Mqtt(ConnectionInfo connectionInfo,
   std::chrono::seconds keepAlive,
   std::optional<LastWillMessage> lastWillMessage,
   std::function<void()> onConnect,
-  std::function<void()> onDisconnect) :
+  std::function<void()> onDisconnect,
+  int32_t bufferSize) :
   p(std::make_unique<Private>(connectionInfo.uri,
     connectionInfo.cert,
     connectionInfo.username,
     connectionInfo.password,
+    bufferSize,
     topicsPrefix,
     keepAlive,
     lastWillMessage,
@@ -171,8 +184,13 @@ bool Mqtt::isConnected() const {
 }
 
 std::unique_ptr<Mqtt::Subscription> Mqtt::subscribe(
-  std::string_view topic, Qos qos, std::function<void(std::string_view)> reaction) {
+  std::string_view topic, Qos qos, std::function<void(const Data&)> reaction) {
   return p->subscribe(topic, qos, reaction);
+}
+
+std::unique_ptr<Mqtt::Subscription> Mqtt::subscribe(
+  std::string_view topic, Qos qos, std::function<void(std::string_view)> reaction) {
+  return subscribe(topic, qos, [reaction](const Data& data) { reaction(data.data); });
 }
 
 void Mqtt::publish(std::string_view topic, std::string_view data, Qos qos, bool isRetained) {
