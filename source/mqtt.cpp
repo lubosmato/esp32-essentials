@@ -47,20 +47,20 @@ struct Mqtt::Private {
     esp_mqtt_client_config_t config{};
     if (this->lastWillMessage) {
       lwtFullTopic = makeTopic(this->lastWillMessage->topic);
-      config.lwt_topic = lwtFullTopic.c_str();
-      config.lwt_msg = this->lastWillMessage->message.c_str();
-      config.lwt_msg_len = this->lastWillMessage->message.size();
-      config.lwt_qos = int(this->lastWillMessage->qos);
-      config.lwt_retain = this->lastWillMessage->isRetained;
+      config.session.last_will.topic = lwtFullTopic.c_str();
+      config.session.last_will.msg = this->lastWillMessage->message.c_str();
+      config.session.last_will.msg_len = this->lastWillMessage->message.size();
+      config.session.last_will.qos = int(this->lastWillMessage->qos);
+      config.session.last_will.retain = this->lastWillMessage->isRetained;
     }
-    config.buffer_size = bufferSize;
-    config.uri = this->uri.c_str();
-    config.cert_pem = cert.data();
-    config.username = this->username.c_str();
-    config.password = this->password.c_str();
-    config.keepalive = keepAlive.count();
+    config.buffer.size = bufferSize;
+    config.broker.address.uri = this->uri.c_str();
+    config.broker.verification.certificate = cert.data();
+    config.credentials.username = this->username.c_str();
+    config.credentials.authentication.password = this->password.c_str();
+    config.session.keepalive = keepAlive.count();
 
-    ESP_LOGI(TAG_MQTT, "Free memory: %d bytes", esp_get_free_heap_size());
+    ESP_LOGI(TAG_MQTT, "Free memory: %lu bytes", esp_get_free_heap_size());
     client = esp_mqtt_client_init(&config);
     esp_mqtt_client_register_event(client, esp_mqtt_event_id_t(ESP_EVENT_ANY_ID), &Private::eventHandler, this);
     esp_mqtt_client_start(client);
@@ -86,7 +86,7 @@ struct Mqtt::Private {
       esp_mqtt_client_unsubscribe(client, prefixedTopic.c_str());
     };
 
-    return std::move(subscription);
+    return subscription;
   }
 
   std::string makeTopic(std::string_view topic) {

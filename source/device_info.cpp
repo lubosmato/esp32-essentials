@@ -1,6 +1,7 @@
 #include "esp_heap_caps.h"
 #include "esp_system.h"
 #include "esp_timer.h"
+#include "esp_mac.h"
 #include "essentials/device_info.hpp"
 #include "freertos/FreeRTOSConfig.h"
 

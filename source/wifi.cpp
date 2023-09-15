@@ -3,6 +3,7 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_wifi.h"
+#include "esp_mac.h"
 #include "freertos/FreeRTOS.h"
 #include "nvs_flash.h"
 
