@@ -1,9 +1,9 @@
 #include "essentials/wifi.hpp"
 
 #include "esp_log.h"
+#include "esp_mac.h"
 #include "esp_netif.h"
 #include "esp_wifi.h"
-#include "esp_mac.h"
 #include "freertos/FreeRTOS.h"
 #include "nvs_flash.h"
 
@@ -84,6 +84,7 @@ struct Wifi::Private {
   void startAccessPoint(std::string_view ssid, std::string_view password, Channel channel) {
     disconnect();
 
+    nvs_flash_init();
     esp_netif_init();
     esp_event_loop_create_default();
     netInterface = esp_netif_create_default_wifi_ap();
